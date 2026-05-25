@@ -5,9 +5,24 @@ import { motion } from 'framer-motion';
 import ReactMarkdown from 'react-markdown';
 
 export default function ChatPage() {
-  const [messages, setMessages] = useState([
-    { id: '1', role: 'ai', content: 'Hello! I\'m **Yatra**, your AI travel concierge. I can search for flights, hotels, buses, activities, guides, and car rentals. I can also book, manage your bookings, and organize trips for you.\n\nWhat would you like to do today?' }
-  ]);
+  const [messages, setMessages] = useState(() => {
+    const saved = localStorage.getItem('yatra_messages');
+    if (saved) {
+      try {
+        return JSON.parse(saved);
+      } catch (e) {
+        console.error("Failed to parse saved chat messages:", e);
+      }
+    }
+    const defaultMsg = { 
+      id: '1', 
+      role: 'ai', 
+      content: 'Hello! I\'m **Yatra**, your AI travel concierge. I can search for flights, hotels, buses, activities, guides, and car rentals. I can also book, manage your bookings, and organize trips for you.\n\nWhat would you like to do today?',
+      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+    };
+    return [defaultMsg];
+  });
+  
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [threadId, setThreadId] = useState(() => localStorage.getItem('yatra_thread_id'));
@@ -15,19 +30,28 @@ export default function ChatPage() {
 
   const startNewChat = () => {
     localStorage.removeItem('yatra_thread_id');
+    localStorage.removeItem('yatra_messages');
     setThreadId(null);
-    setMessages([
-      { id: '1', role: 'ai', content: 'Hello! I\'m **Yatra**, your AI travel concierge. I can search for flights, hotels, buses, activities, guides, and car rentals. I can also book, manage your bookings, and organize trips for you.\n\nWhat would you like to do today?' }
-    ]);
+    const defaultMsg = { 
+      id: '1', 
+      role: 'ai', 
+      content: 'Hello! I\'m **Yatra**, your AI travel concierge. I can search for flights, hotels, buses, activities, guides, and car rentals. I can also book, manage your bookings, and organize trips for you.\n\nWhat would you like to do today?',
+      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+    };
+    setMessages([defaultMsg]);
   };
 
-  useEffect(() => { messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [messages]);
+  useEffect(() => {
+    localStorage.setItem('yatra_messages', JSON.stringify(messages));
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!input.trim() || isLoading) return;
 
-    const userMsg = { id: Date.now().toString(), role: 'user', content: input };
+    const timeStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    const userMsg = { id: Date.now().toString(), role: 'user', content: input, timestamp: timeStr };
     setMessages(prev => [...prev, userMsg]);
     setInput('');
     setIsLoading(true);
@@ -38,9 +62,21 @@ export default function ChatPage() {
         setThreadId(data.thread_id);
         localStorage.setItem('yatra_thread_id', data.thread_id);
       }
-      setMessages(prev => [...prev, { id: (Date.now() + 1).toString(), role: 'ai', content: data.response }]);
+      const aiTimeStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      setMessages(prev => [...prev, { 
+        id: (Date.now() + 1).toString(), 
+        role: 'ai', 
+        content: data.response,
+        timestamp: aiTimeStr
+      }]);
     } catch {
-      setMessages(prev => [...prev, { id: (Date.now() + 1).toString(), role: 'ai', content: 'I apologize, but I encountered an error processing your request.' }]);
+      const aiTimeStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      setMessages(prev => [...prev, { 
+        id: (Date.now() + 1).toString(), 
+        role: 'ai', 
+        content: 'I apologize, but I encountered an error processing your request.',
+        timestamp: aiTimeStr
+      }]);
     } finally {
       setIsLoading(false);
     }
@@ -67,10 +103,23 @@ export default function ChatPage() {
             <div className={`message-avatar ${msg.role}`}>
               {msg.role === 'user' ? <UserIcon size={18} /> : <Bot size={18} />}
             </div>
-            <div className={`message-bubble ${msg.role}`}>
-              {msg.role === 'ai' ? (
-                <div className="markdown-body"><ReactMarkdown>{msg.content}</ReactMarkdown></div>
-              ) : msg.content}
+            
+            <div style={{ 
+              display: 'flex', 
+              flexDirection: 'column', 
+              maxWidth: '80%', 
+              alignItems: msg.role === 'user' ? 'flex-end' : 'flex-start' 
+            }}>
+              <div className={`message-bubble ${msg.role}`}>
+                {msg.role === 'ai' ? (
+                  <div className="markdown-body"><ReactMarkdown>{msg.content}</ReactMarkdown></div>
+                ) : msg.content}
+              </div>
+              {msg.timestamp && (
+                <span style={{ fontSize: '0.68rem', color: 'var(--text-muted)', marginTop: '4px', padding: '0 4px' }}>
+                  {msg.timestamp}
+                </span>
+              )}
             </div>
           </motion.div>
         ))}

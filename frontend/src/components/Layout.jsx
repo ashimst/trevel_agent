@@ -1,8 +1,9 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import {
   Plane, Hotel, Bus, Compass, Users, Car,
-  ClipboardList, Map, MessageSquare, LogOut, Menu, X, Sparkles
+  ClipboardList, Map, MessageSquare, LogOut, Menu, X, Sparkles,
+  Sun, Moon
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext.jsx';
 import AuthModal from './AuthModal.jsx';
@@ -31,6 +32,22 @@ export default function Layout({ children }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [authModalOpen, setAuthModalOpen] = useState(false);
   const navigate = useNavigate();
+
+  const [darkMode, setDarkMode] = useState(() => {
+    const saved = localStorage.getItem('theme');
+    if (saved) return saved === 'dark';
+    return window.matchMedia('(prefers-color-scheme: dark)').matches;
+  });
+
+  useEffect(() => {
+    if (darkMode) {
+      document.documentElement.classList.add('dark');
+      localStorage.setItem('theme', 'dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+      localStorage.setItem('theme', 'light');
+    }
+  }, [darkMode]);
 
   const getInitials = (name) => name ? name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2) : '??';
 
@@ -95,6 +112,14 @@ export default function Layout({ children }) {
             <Menu size={24} />
           </button>
           <div style={{ flex: 1 }} />
+          <button 
+            className="btn btn-ghost btn-icon" 
+            onClick={() => setDarkMode(!darkMode)} 
+            title="Toggle theme"
+            style={{ marginRight: '0.5rem', display: 'flex', alignItems: 'center', padding: '6px' }}
+          >
+            {darkMode ? <Sun size={20} /> : <Moon size={20} />}
+          </button>
           {user && (
             <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
               Welcome, {user.full_name}

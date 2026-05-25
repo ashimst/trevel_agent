@@ -1,7 +1,7 @@
 """
 Trip service: create, retrieve, and manage booking attachments.
 """
-from datetime import datetime
+from datetime import datetime, timezone
 from bson import ObjectId
 from fastapi import HTTPException, status
 from motor.motor_asyncio import AsyncIOMotorDatabase
@@ -14,7 +14,7 @@ def _serialize(doc: dict) -> dict:
 
 
 async def create_trip(*, db: AsyncIOMotorDatabase, user_id: str, name: str, description: str | None) -> dict:
-    now = datetime.utcnow()
+    now = datetime.now(timezone.utc)
     trip_id = ObjectId()
     doc = {
         "_id": trip_id,
@@ -52,7 +52,7 @@ async def add_booking_to_trip(
         {"_id": ObjectId(trip_id), "user_id": user_id},
         {
             "$addToSet": {"booking_ids": ObjectId(booking_id)},
-            "$set": {"updated_at": datetime.utcnow()},
+            "$set": {"updated_at": datetime.now(timezone.utc)},
         },
         return_document=True,
     )
@@ -68,7 +68,7 @@ async def remove_booking_from_trip(
         {"_id": ObjectId(trip_id), "user_id": user_id},
         {
             "$pull": {"booking_ids": ObjectId(booking_id)},
-            "$set": {"updated_at": datetime.utcnow()},
+            "$set": {"updated_at": datetime.now(timezone.utc)},
         },
         return_document=True,
     )

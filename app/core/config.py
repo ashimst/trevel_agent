@@ -11,12 +11,11 @@ class Settings(BaseSettings):
     MONGODB_URL: str = "mongodb://localhost:27017"
     DATABASE_NAME: str = "travels_db"
 
-    JWT_SECRET_KEY: str = "kuxqPdQdeuytvC19FvZOwww0ot1pMk8e"
+    JWT_SECRET_KEY: str
     JWT_ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60
 
     # AI Agent LLM keys
-    CEREBRAS_API_KEY: str = ""
     GROQ_API_KEY: str = ""
     GOOGLE_API_KEY: str = ""
     NVIDIA_API_KEY: str = ""

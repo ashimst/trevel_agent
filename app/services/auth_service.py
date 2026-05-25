@@ -2,7 +2,7 @@
 Auth service: register and login logic.
 Users are stored with str _id = email (acts as unique key).
 """
-from datetime import datetime
+from datetime import datetime, timezone
 
 from fastapi import HTTPException, status
 from motor.motor_asyncio import AsyncIOMotorDatabase
@@ -21,7 +21,7 @@ async def register_user(payload: UserRegisterRequest, db: AsyncIOMotorDatabase) 
         "email": payload.email,
         "full_name": payload.full_name,
         "hashed_password": hash_password(payload.password),
-        "created_at": datetime.utcnow(),
+        "created_at": datetime.now(timezone.utc),
     }
     await db["users"].insert_one(doc)
     token = create_access_token({"sub": payload.email})

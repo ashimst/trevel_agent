@@ -2,7 +2,7 @@ from typing import List
 from fastapi import APIRouter, Depends, HTTPException, status
 from motor.motor_asyncio import AsyncIOMotorDatabase
 from bson import ObjectId
-from datetime import datetime
+from datetime import datetime, timezone
 
 from app.core.database import get_database
 from app.core.security import get_current_user
@@ -56,5 +56,5 @@ async def cancel_booking(
         )
     await db["bookings"].update_one(
         {"_id": ObjectId(booking_id)},
-        {"$set": {"status": BookingStatus.cancelled, "updated_at": datetime.utcnow()}},
+        {"$set": {"status": BookingStatus.cancelled, "updated_at": datetime.now(timezone.utc)}},
     )

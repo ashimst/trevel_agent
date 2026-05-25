@@ -1,4 +1,5 @@
 import uuid
+import logging
 from typing import List
 from fastapi import APIRouter, Depends
 from langchain_core.messages import HumanMessage
@@ -6,7 +7,9 @@ from langchain_core.messages import HumanMessage
 from app.agents.graph import compile_graph
 from app.schemas.chat import ChatRequest, ChatResponse
 from app.core.security import get_current_user_optional
+from app.core.config import settings
 
+logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/chat", tags=["AI Chat"])
 
 graph = compile_graph()
@@ -23,13 +26,14 @@ async def chat(
         "configurable": {
             "thread_id": thread_id,
             "user_id": user_id
-        }
+        },
+        "recursion_limit": settings.AGENT_MAX_ITERATIONS
     }
     
     inputs = {"messages": [HumanMessage(content=request.message)]}
     
     try:
-        # Checkpointer is already baked into the compiled graph
+        logger.info(f"Invoking agentic graph for thread_id={thread_id}, user_id={user_id}")
         result = await graph.ainvoke(inputs, config=config)
         
         response_msg = result["messages"][-1].content
@@ -37,9 +41,13 @@ async def chat(
             response_msg = "\n".join([item["text"] for item in response_msg if isinstance(item, dict) and "text" in item])
             if not response_msg:
                 response_msg = str(result["messages"][-1].content)
+        logger.info(f"Agent graph execution completed successfully for thread_id={thread_id}")
     except Exception as e:
-        print(f"[Chat Error] {type(e).__name__}: {e}")
-        response_msg = "I'm sorry, I encountered an issue processing your request. Could you please try rephrasing your question?"
+        logger.error(f"[Chat Error] {type(e).__name__} for thread_id {thread_id}: {e}", exc_info=True)
+        response_msg = (
+            "I sincerely apologize, but I'm having a little trouble retrieving that information right now. "
+            "Please rest assured that our team is looking into it. In the meantime, is there anything else I can help you plan?"
+        )
     
     return ChatResponse(
         thread_id=thread_id,

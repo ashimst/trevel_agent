@@ -36,8 +36,8 @@ async def create_flight(
     db: AsyncIOMotorDatabase = Depends(get_database),
 ):
     doc = payload.model_dump()
-    from datetime import datetime
-    doc["created_at"] = datetime.utcnow()
+    from datetime import datetime, timezone
+    doc["created_at"] = datetime.now(timezone.utc)
     result = await db["flights"].insert_one(doc)
     doc["id"] = str(result.inserted_id)
     return doc
